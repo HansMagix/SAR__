@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>University Course Finder - Advanced Points</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            display: flex; 
+            flex-direction: column; 
+            justify-content: space-between; 
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .card.near-miss { border-left: 5px solid #f59e0b; /* Amber-500 */ }
+        .card.aspirational { border-left: 5px solid #60a5fa; /* Blue-400 */ }
+        .card.other-na { border-left: 5px solid #9ca3af; /* Gray-400 for N/A points */ }
+
+
+        select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem;
+            -webkit-appearance: none; -moz-appearance: none; appearance: none;
+        }
+        input[type='number']::-webkit-inner-spin-button,
+        input[type='number']::-webkit-outer-spin-button {
+            -webkit-appearance: none; margin: 0;
+        }
+        input[type='number'] { -moz-appearance: textfield; }
+
+        .selected-tag {
+            background-color: #e0e7ff; color: #3730a3; padding: 0.25rem 0.75rem;
+            border-radius: 0.375rem; margin-right: 0.5rem; margin-bottom: 0.5rem;
+            font-size: 0.875rem; display: inline-flex; align-items: center; cursor: default;
+        }
+        .selected-tag .remove-tag-btn {
+            margin-left: 0.5rem; color: #4f46e5; font-weight: bold;
+            cursor: pointer; padding: 0.1rem; line-height: 1;
+        }
+        .selected-tag .remove-tag-btn:hover { color: #3730a3; }
+
+        .message-box {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            padding: 12px 20px; border-radius: 8px; font-size: 0.875rem;
+            z-index: 1000; opacity: 0; visibility: hidden;
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+        }
+        .message-box.show { opacity: 1; transform: translateX(-50%) translateY(0); visibility: visible; }
+        .message-box.info { background-color: #3B82F6; color: white; }
+        .message-box.warning { background-color: #F59E0B; color: white; }
+        .message-box.error { background-color: #EF4444; color: white; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-4 md:p-8 selection:bg-indigo-500 selection:text-white">
+
+    <div class="w-full max-w-6xl"> {/* Wider for more inputs */}
+        <header class="mb-8 text-center">
+            <h1 class="text-4xl font-bold text-indigo-600">University Course Finder</h1>
+            <p class="text-slate-600 mt-2">Define your target point range and actual points to find suitable courses.</p>
+        </header>
+
+        <div class="bg-white p-6 sm:p-8 rounded-xl shadow-xl mb-8">
+            <h2 class="text-2xl font-semibold mb-6 text-indigo-700">Your Profile & Preferences</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-x-6 gap-y-8">
+                {/* Points Section */}
+                <div class="lg:col-span-1 space-y-4 p-4 border border-slate-200 rounded-lg">
+                    <h3 class="text-lg font-medium text-slate-700 mb-2">Academic Points</h3>
+                    <div>
+                        <label for="minDesiredPoints" class="block text-sm font-medium text-slate-700 mb-1">Min Desired Points:</label>
+                        <input type="number" id="minDesiredPoints" placeholder="e.g., 60" value="60" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label for="maxDesiredPoints" class="block text-sm font-medium text-slate-700 mb-1">Max Desired Points:</label>
+                        <input type="number" id="maxDesiredPoints" placeholder="e.g., 80" value="80" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label for="yourActualPoints" class="block text-sm font-medium text-slate-700 mb-1">Your Actual Points:</label>
+                        <input type="number" id="yourActualPoints" placeholder="e.g., 75" value="75" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+
+                {/* Fields of Interest Section */}
+                <div class="lg:col-span-1 p-4 border border-slate-200 rounded-lg">
+                    <label for="fieldOfInterestSelect" class="block text-sm font-medium text-slate-700 mb-1">Add Field(s) of Interest:</label>
+                    <select id="fieldOfInterestSelect" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 mb-3">
+                        <option value="">-- Select a field --</option>
+                        <option value="All">All Fields (Exclusive)</option>
+                    </select>
+                    <div id="selectedFieldsContainer" class="flex flex-wrap min-h-[40px]"></div>
+                </div>
+
+                {/* Institutions Section */}
+                <div class="lg:col-span-1 p-4 border border-slate-200 rounded-lg">
+                    <label for="institutionSelect" class="block text-sm font-medium text-slate-700 mb-1">Add Institution(s):</label>
+                    <select id="institutionSelect" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 mb-3">
+                        <option value="">-- Select an institution --</option>
+                        <option value="All">All Institutions (Exclusive)</option>
+                    </select>
+                    <div id="selectedInstitutionsContainer" class="flex flex-wrap min-h-[40px]"></div>
+                </div>
+            </div>
+            <div class="mt-8 text-center">
+                <button id="findCoursesBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-8 rounded-lg shadow-md hover:shadow-lg transition-all">
+                    Find Matching Courses
+                </button>
+            </div>
+        </div>
+
+        <div id="resultsSection" class="mt-10">
+            {/* Direct Matches */}
+            <div id="directMatchesSection" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-6 text-center text-emerald-600">Direct Matches (Within Your Target)</h2>
+                <div id="directMatchesContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                <p id="noDirectResultsMessage" class="text-slate-500 text-center col-span-full hidden">No direct matches found.</p>
+            </div>
+            {/* Near Misses */}
+            <div id="nearMissesSection" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-6 text-center text-amber-600">Near Misses (Within Your Target)</h2>
+                <div id="nearMissesContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                <p id="noNearMissesMessage" class="text-slate-500 text-center col-span-full hidden">No near misses found within target.</p>
+            </div>
+            {/* Aspirational Courses */}
+            <div id="aspirationalSection" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-6 text-center text-sky-600">Consider These (Above Your Target Max)</h2>
+                <div id="aspirationalContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                <p id="noAspirationalMessage" class="text-slate-500 text-center col-span-full hidden">No courses found above your target that you qualify for or are close to.</p>
+            </div>
+            {/* Other Available Courses (Points N/A) */}
+            <div id="otherCoursesSection" class="mb-12">
+                <h2 class="text-2xl font-semibold mb-6 text-center text-slate-600">Other Available Courses (Points N/A)</h2>
+                <div id="otherCoursesContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                <p id="noOtherCoursesMessage" class="text-slate-500 text-center col-span-full hidden">No other courses found matching criteria.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="messageBox" class="message-box"></div>
+
+    <script>
+        // --- User Defined Categories & Institutions ---
+        const userCategories = [
+            'Actuarial Science, Accountancy, Mathematics, Economics, Statistics & Related',
+            'General Science, Biological Sciences, Physics, Chemistry & Related',
+            'Education & Related',
+            'Business, Hospitality & Related',
+            'Social Sciences, Media Studies, Fine Arts, Film, Animation, Graphics & Related',
+            'Engineering, Engineering Technology & Related',
+            'Medicine, Health, Veterinary Medicine & Related',
+            'Other / Interdisciplinary',
+            'Law',
+            'Computing, IT & Related',
+            'Tourism & Hospitality',
+            'Library & Information Science',
+            'Architecture, Building Construction & Related',
+            'Sport Science & Related',
+            'Arts and Culture'
+        ];
+
+        const userInstitutions = [
+            'JARAMOGI OGINGA ODINGA UNIVERSITY OF SCIENCE AND TECHNOLOGY', 'EGERTON UNIVERSITY', 'KISII UNIVERSITY',
+            'KENYATTA UNIVERSITY', 'UNIVERSITY OF ELDORET', 'UNIVERSITY OF KABIANGA', 'MULTIMEDIA UNIVERSITY OF KENYA',
+            'SOUTH EASTERN KENYA UNIVERSITY', 'DEDAN KIMATHI UNIVERSITY OF TECHNOLOGY', 'MASENO UNIVERSITY',
+            'MERU UNIVERSITY OF SCIENCE AND TECHNOLOGY', 'KARATINA UNIVERSITY',
+            'JOMO KENYATTA UNIVERSITY OF AGRICULTURE AND TECHNOLOGY', 'MOI UNIVERSITY', 'UNIVERSITY OF NAIROBI',
+            'DAYSTAR UNIVERSITY', 'MOUNT KENYA UNIVERSITY', 'CATHOLIC UNIVERSITY OF EASTERN  AFRICA',
+            'KIRINYAGA UNIVERSITY', 'GARISSA UNIVERSITY', "MURANG'A UNIVERSITY OF TECHNOLOGY", 'TOM MBOYA UNIVERSITY',
+            'KABARAK UNIVERSITY', 'KCA UNIVERSITY', 'CHUKA UNIVERSITY', 'MACHAKOS UNIVERSITY', 'THARAKA UNIVERSITY',
+            'CO-OPERATIVE UNIVERSITY OF KENYA', 'ZETECH UNIVERSITY',
+            'MASINDE MULIRO UNIVERSITY OF SCIENCE & TECHNOLOGY', 'UNIVERSITY OF EMBU', 'KIBABII UNIVERSITY',
+            'PWANI UNIVERSITY', 'UNIVERSITY OF EASTERN AFRICA, BARATON', 'KAIMOSI FRIENDS UNIVERSITY',
+            'RONGO UNIVERSITY', 'MAASAI MARA UNIVERSITY', 'LAIKIPIA UNIVERSITY', 'RIARA UNIVERSITY',
+            'GRETSA UNIVERSITY', 'SCOTT CHRISTIAN UNIVERSITY', 'ST PAULS UNIVERSITY',
+            'KENYA HIGHLANDS EVANGELICAL UNIVERSITY', 'GREAT LAKES UNIVERSITY OF KISUMU',
+            'PRESBYTERIAN UNIVERSITY OF EAST AFRICA', 'INTERNATIONAL LEADERSHIP UNIVERSITY',
+            'TANGAZA UNIVERSITY COLLEGE', 'LUKENYA UNIVERSITY', 'THE EAST AFRICAN UNIVERSITY',
+            'MARIST INTERNATIONAL UNIVERSITY COLLEGE', 'KENYA METHODIST UNIVERSITY', 'AFRICA NAZARENE UNIVERSITY',
+            'AFRICA INTERNATIONAL UNIVERSITY', 'KENYA ASSEMBLIES OF GOD EAST UNIVERSITY',
+            'TURKANA UNIVERSITY COLLEGE', 'ALUPE UNIVERSITY', 'PIONEER INTERNATIONAL UNIVERSITY',
+            'KIRIRI WOMENS UNIVERSITY OF SCIENCE AND TECHNOLOGY', 'UMMA UNIVERSITY', 'BOMET UNIVERSITY COLLEGE',
+            'KOITALEEL SAMOEI UNIVERSITY COLLEGE', 'ISLAMIC UNIVERSITY OF KENYA',
+            'MANAGEMENT UNIVERSITY OF AFRICA', 'TAITA TAVETA UNIVERSITY', 'TECHNICAL UNIVERSITY OF MOMBASA',
+            'AMREF INTERNATIONAL UNIVERSITY', 'OPEN UNIVERSITY OF KENYA', 'TECHNICAL UNIVERSITY OF KENYA',
+            'KENYATTA UNIVERSITY - MAMA NGINA UNIVERSITY COLLEGE', 'UZIMA UNIVERSITY',
+            'PAN AFRICA CHRISTIAN UNIVERSITY', 'UNITED STATES INTERNATIONAL UNIVERSITY'
+        ];
+
+        // --- Sample Data (Hardcoded) ---
+        const universitiesData = [
+            {
+                name: "KENYATTA UNIVERSITY", country: "Kenya",
+                courses: [
+                    { id: "KU001", name: "Computer Science", field: "Computing, IT & Related", minPoints: 85, description: "Focus on software, AI, and networks." },
+                    { id: "KU002", name: "Education (Arts)", field: "Education & Related", minPoints: 70, description: "Arts subjects teaching." },
+                    { id: "KU003", name: "Electrical Engineering", field: "Engineering, Engineering Technology & Related", minPoints: 88, description: "Power systems and electronics."},
+                    { id: "KU004", name: "BSc. Statistics", minPoints: null, field: "Actuarial Science, Accountancy, Mathematics, Economics, Statistics & Related", description: "Statistical analysis." }
+                ]
+            },
+            {
+                name: "UNIVERSITY OF NAIROBI", country: "Kenya",
+                courses: [
+                    { id: "UON001", name: "Civil Engineering", field: "Engineering, Engineering Technology & Related", minPoints: 90, description: "Design infrastructure." },
+                    { id: "UON002", name: "Laws (LLB)", field: "Law", minPoints: 88, description: "Legal education." },
+                    { id: "UON003", name: "Architecture", field: "Architecture, Building Construction & Related", minPoints: 82, description: "Building design."}
+                ]
+            },
+            {
+                name: "MOI UNIVERSITY", country: "Kenya",
+                courses: [
+                    { id: "MOI001", name: "Medicine & Surgery", field: "Medicine, Health, Veterinary Medicine & Related", minPoints: 92, description: "Medical doctor training." },
+                    { id: "MOI002", name: "Business Management", field: "Business, Hospitality & Related", minPoints: 72, description: "Business operations."}
+                ]
+            },
+            {
+                name: "JOMO KENYATTA UNIVERSITY OF AGRICULTURE AND TECHNOLOGY", country: "Kenya",
+                courses: [
+                     { id: "JKUAT001", name: "Actuarial Science", field: "Actuarial Science, Accountancy, Mathematics, Economics, Statistics & Related", minPoints: 80, description: "Risk analysis." }
+                ]
+            },
+            {
+                name: "TECHNICAL UNIVERSITY OF KENYA", country: "Kenya",
+                courses: [
+                     { id: "TUK001", name: "Library & Information Science", field: "Library & Information Science", minPoints: 68, description: "Manage information resources." }
+                ]
+            }
+        ];
+        // --- End of Sample Data ---
+
+
+        // --- DOM Elements ---
+        const minDesiredPointsInput = document.getElementById('minDesiredPoints');
+        const maxDesiredPointsInput = document.getElementById('maxDesiredPoints');
+        const yourActualPointsInput = document.getElementById('yourActualPoints');
+        const fieldOfInterestSelectElement = document.getElementById('fieldOfInterestSelect');
+        const selectedFieldsContainer = document.getElementById('selectedFieldsContainer');
+        const institutionSelectElement = document.getElementById('institutionSelect');
+        const selectedInstitutionsContainer = document.getElementById('selectedInstitutionsContainer');
+        const findCoursesBtn = document.getElementById('findCoursesBtn');
+
+        const directMatchesContainer = document.getElementById('directMatchesContainer');
+        const nearMissesContainer = document.getElementById('nearMissesContainer');
+        const aspirationalContainer = document.getElementById('aspirationalContainer');
+        const otherCoursesContainer = document.getElementById('otherCoursesContainer');
+
+        const noDirectResultsMessage = document.getElementById('noDirectResultsMessage');
+        const noNearMissesMessage = document.getElementById('noNearMissesMessage');
+        const noAspirationalMessage = document.getElementById('noAspirationalMessage');
+        const noOtherCoursesMessage = document.getElementById('noOtherCoursesMessage');
+        const messageBox = document.getElementById('messageBox');
+
+        // --- State ---
+        let selectedFieldsArray = [];
+        let selectedInstitutionsArray = [];
+
+        // --- Configuration ---
+        const NEAR_MISS_THRESHOLD = 5;
+
+        // --- Populate Dropdowns ---
+        function populateDropdown(selectElement, optionsArray, placeholderText, allText) {
+            selectElement.innerHTML = `<option value="">-- ${placeholderText} --</option><option value="All">${allText} (Exclusive)</option>`;
+            optionsArray.sort().forEach(item => {
+                const option = document.createElement('option');
+                option.value = item; option.textContent = item;
+                selectElement.appendChild(option);
+            });
+        }
+
+        // --- Render Selected Tags ---
+        function renderSelectedTags(container, tagsArray, removeFunction) {
+            container.innerHTML = '';
+            tagsArray.forEach(tagValue => {
+                const tagDiv = document.createElement('div');
+                tagDiv.className = 'selected-tag'; tagDiv.textContent = tagValue;
+                const removeBtn = document.createElement('span');
+                removeBtn.className = 'remove-tag-btn'; removeBtn.innerHTML = '&times;';
+                removeBtn.title = `Remove ${tagValue}`;
+                removeBtn.onclick = () => { removeFunction(tagValue); };
+                tagDiv.appendChild(removeBtn); container.appendChild(tagDiv);
+            });
+        }
+        // --- Manage Selected Fields & Institutions ---
+        function addSelectedField(field) { if (field === "All") selectedFieldsArray = ["All"]; else { selectedFieldsArray = selectedFieldsArray.filter(f => f !== "All"); if (!selectedFieldsArray.includes(field)) selectedFieldsArray.push(field); } renderSelectedTags(selectedFieldsContainer, selectedFieldsArray, removeSelectedField); }
+        function removeSelectedField(fieldToRemove) { selectedFieldsArray = selectedFieldsArray.filter(field => field !== fieldToRemove); renderSelectedTags(selectedFieldsContainer, selectedFieldsArray, removeSelectedField); }
+        function addSelectedInstitution(inst) { if (inst === "All") selectedInstitutionsArray = ["All"]; else { selectedInstitutionsArray = selectedInstitutionsArray.filter(i => i !== "All"); if (!selectedInstitutionsArray.includes(inst)) selectedInstitutionsArray.push(inst); } renderSelectedTags(selectedInstitutionsContainer, selectedInstitutionsArray, removeSelectedInstitution); }
+        function removeSelectedInstitution(instToRemove) { selectedInstitutionsArray = selectedInstitutionsArray.filter(inst => inst !== instToRemove); renderSelectedTags(selectedInstitutionsContainer, selectedInstitutionsArray, removeSelectedInstitution); }
+
+        // --- Event Listeners ---
+        fieldOfInterestSelectElement.addEventListener('change', (e) => { if (e.target.value) { addSelectedField(e.target.value); e.target.value = ""; } });
+        institutionSelectElement.addEventListener('change', (e) => { if (e.target.value) { addSelectedInstitution(e.target.value); e.target.value = ""; } });
+        findCoursesBtn.addEventListener('click', findAndDisplayCourses);
+        [minDesiredPointsInput, maxDesiredPointsInput, yourActualPointsInput].forEach(input => {
+            input.addEventListener('keypress', (e) => { if (e.key === 'Enter') findCoursesBtn.click(); });
+        });
+
+        // --- Core Logic: Finding and Displaying Courses ---
+        function findAndDisplayCourses() {
+            const minDesiredStr = minDesiredPointsInput.value;
+            const maxDesiredStr = maxDesiredPointsInput.value;
+            const actualPointsStr = yourActualPointsInput.value;
+
+            if (!minDesiredStr || !maxDesiredStr || !actualPointsStr) {
+                showMessage("Please fill in all academic points fields.", "error"); return;
+            }
+            const minDesired = parseInt(minDesiredStr, 10);
+            const maxDesired = parseInt(maxDesiredStr, 10);
+            const actualPoints = parseInt(actualPointsStr, 10);
+
+            if (isNaN(minDesired) || isNaN(maxDesired) || isNaN(actualPoints) || minDesired < 0 || maxDesired < 0 || actualPoints < 0) {
+                showMessage("Please enter valid positive numbers for points.", "error"); return;
+            }
+            if (minDesired > maxDesired) {
+                showMessage("Min desired points cannot be greater than max desired points.", "error"); return;
+            }
+            if (selectedFieldsArray.length === 0) {
+                showMessage("Please select at least one field of interest.", "warning"); return;
+            }
+            if (selectedInstitutionsArray.length === 0) {
+                showMessage("Please select at least one institution.", "warning"); return;
+            }
+
+            directMatchesContainer.innerHTML = ''; nearMissesContainer.innerHTML = '';
+            aspirationalContainer.innerHTML = ''; otherCoursesContainer.innerHTML = '';
+            noDirectResultsMessage.classList.add('hidden'); noNearMissesMessage.classList.add('hidden');
+            noAspirationalMessage.classList.add('hidden'); noOtherCoursesMessage.classList.add('hidden');
+            let directFound = 0, nearMissFound = 0, aspirationalFound = 0, otherCoursesFound = 0;
+
+            universitiesData.forEach(uni => {
+                const meetsInstitution = selectedInstitutionsArray.includes("All") || selectedInstitutionsArray.includes(uni.name);
+                if (!meetsInstitution) return;
+
+                uni.courses.forEach(course => {
+                    const meetsField = selectedFieldsArray.includes("All") || selectedFieldsArray.includes(course.field);
+                    if (!meetsField) return;
+
+                    const courseMin = course.minPoints; // Can be number or null
+
+                    if (courseMin === null) {
+                        otherCoursesFound++;
+                        otherCoursesContainer.appendChild(createCourseCard(uni, course, actualPoints, 'other-points-na'));
+                    } else {
+                        if (courseMin >= minDesired && courseMin <= maxDesired) {
+                            if (actualPoints >= courseMin) {
+                                directFound++;
+                                directMatchesContainer.appendChild(createCourseCard(uni, course, actualPoints, 'direct'));
+                            } else if (actualPoints >= courseMin - NEAR_MISS_THRESHOLD) {
+                                nearMissFound++;
+                                nearMissesContainer.appendChild(createCourseCard(uni, course, actualPoints, 'near-miss'));
+                            }
+                        } else if (courseMin > maxDesired) {
+                            if (actualPoints >= courseMin) {
+                                aspirationalFound++;
+                                aspirationalContainer.appendChild(createCourseCard(uni, course, actualPoints, 'aspirational-qualified'));
+                            } else if (actualPoints >= courseMin - NEAR_MISS_THRESHOLD) {
+                                aspirationalFound++;
+                                aspirationalContainer.appendChild(createCourseCard(uni, course, actualPoints, 'aspirational-near-miss'));
+                            }
+                        }
+                    }
+                });
+            });
+
+            if (directFound === 0) noDirectResultsMessage.classList.remove('hidden');
+            if (nearMissFound === 0) noNearMissesMessage.classList.remove('hidden');
+            if (aspirationalFound === 0) noAspirationalMessage.classList.remove('hidden');
+            if (otherCoursesFound === 0) noOtherCoursesMessage.classList.remove('hidden');
+
+            if (directFound === 0 && nearMissFound === 0 && aspirationalFound === 0 && otherCoursesFound === 0) {
+                showMessage("No courses found matching your criteria. Try broadening your search.", "warning");
+            } else {
+                showMessage(`Found ${directFound} direct, ${nearMissFound} near miss (target), ${aspirationalFound} aspirational, and ${otherCoursesFound} other (N/A points) options.`, "info");
+            }
+        }
+
+        function createCourseCard(university, course, userActualPoints, type) {
+            const card = document.createElement('div');
+            card.className = 'card p-6';
+            let pointsDiffText = '', pointsDiffColor = 'text-slate-600', cardSpecificClass = '', typeText = '';
+
+            const displayCountry = (typeof university.country === 'string' && university.country.trim() !== '') ? university.country : 'N/A';
+            const displayDescription = (typeof course.description === 'string' && course.description.trim() !== '') ? course.description : 'No description available.';
+            const displayProgCode = (typeof course.id === 'string' && course.id.trim() !== '') ? course.id : 'N/A';
+
+
+            switch (type) {
+                case 'direct':
+                    typeText = 'You qualify for this course within your target.';
+                    const diffDirect = userActualPoints - course.minPoints;
+                    pointsDiffText = diffDirect === 0 ? `(Matches requirement)` : `(${diffDirect} point${diffDirect !== 1 ? 's' : ''} above requirement)`;
+                    pointsDiffColor = 'text-emerald-600 font-semibold';
+                    break;
+                case 'near-miss':
+                    cardSpecificClass = 'near-miss';
+                    typeText = 'Near miss for this course within your target.';
+                    const diffNear = course.minPoints - userActualPoints;
+                    pointsDiffText = `(${diffNear} point${diffNear !== 1 ? 's' : ''} below requirement)`;
+                    pointsDiffColor = 'text-amber-600 font-semibold';
+                    break;
+                case 'aspirational-qualified':
+                    cardSpecificClass = 'aspirational';
+                    typeText = 'You qualify for this course (above your target max).';
+                     const diffAspQualified = userActualPoints - course.minPoints;
+                    pointsDiffText = diffAspQualified === 0 ? `(Matches requirement)` : `(${diffAspQualified} point${diffAspQualified !== 1 ? 's' : ''} above requirement)`;
+                    pointsDiffColor = 'text-sky-600 font-semibold';
+                    break;
+                case 'aspirational-near-miss':
+                    cardSpecificClass = 'aspirational near-miss';
+                    typeText = 'Near miss for this course (above your target max).';
+                    const diffAspNear = course.minPoints - userActualPoints;
+                    pointsDiffText = `(${diffAspNear} point${diffAspNear !== 1 ? 's' : ''} below requirement)`;
+                    pointsDiffColor = 'text-sky-700 font-semibold';
+                    break;
+                case 'other-points-na':
+                    cardSpecificClass = 'other-na';
+                    typeText = 'Points requirement for this course is not available.';
+                    pointsDiffText = '(Points N/A)';
+                    pointsDiffColor = 'text-slate-500';
+                    break;
+            }
+            if(cardSpecificClass) card.classList.add(...cardSpecificClass.split(' '));
+
+            let pointsDisplayHTML = '';
+            if (type === 'other-points-na') {
+                pointsDisplayHTML = `
+                    <p class="text-sm text-slate-600 mb-1"><span class="font-medium">Min. Points Required:</span> N/A</p>
+                    <p class="text-xs text-slate-500 mb-3 italic">${typeText}</p>
+                `;
+            } else {
+                pointsDisplayHTML = `
+                    <p class="text-sm text-slate-600 mb-1"><span class="font-medium">Min. Points Required:</span> ${course.minPoints}</p>
+                    <p class="text-sm ${pointsDiffColor} mb-1"><span class="font-medium text-slate-600">Your Actual Points:</span> ${userActualPoints} ${pointsDiffText}</p>
+                    <p class="text-xs text-slate-500 mb-3 italic">${typeText}</p>
+                `;
+            }
+
+            card.innerHTML = `
+                <div> {/* Main content wrapper */}
+                    <h3 class="text-xl font-semibold ${ type.includes('aspirational') ? 'text-sky-700' : (type === 'near-miss' ? 'text-amber-700' : (type === 'other-points-na' ? 'text-slate-700' : 'text-indigo-700')) } mb-1">${course.name}</h3>
+                    <p class="text-xs text-slate-400 mb-1">Prog. Code: ${displayProgCode}</p>
+                    <p class="text-md font-medium ${ type.includes('aspirational') ? 'text-sky-600' : (type === 'near-miss' ? 'text-amber-600' : (type === 'other-points-na' ? 'text-slate-600' : 'text-indigo-500')) } mb-2">${university.name} <span class="text-sm text-slate-500 font-normal">(${displayCountry})</span></p>
+                    <p class="text-sm text-slate-600 mb-1"><span class="font-medium">Field:</span> ${course.field}</p>
+                    ${pointsDisplayHTML}
+                    <p class="text-sm text-slate-500 leading-relaxed">${displayDescription}</p>
+                </div>
+                <div class="mt-4 pt-4 border-t border-slate-200 text-right"> {/* Footer for link */}
+                    <a href="#" onclick="event.preventDefault(); showMessage('More info feature coming soon!', 'info')" class="text-sm ${ type.includes('aspirational') ? 'text-sky-600 hover:text-sky-800' : (type === 'near-miss' ? 'text-amber-600 hover:text-amber-800' : (type === 'other-points-na' ? 'text-slate-600 hover:text-slate-800' : 'text-indigo-600 hover:text-indigo-800')) } font-medium">Learn More &rarr;</a>
+                </div>`;
+            return card;
+        }
+
+        let messageTimeout;
+        function showMessage(message, type = 'info', duration = 4000) {
+            messageBox.textContent = message;
+            messageBox.className = 'message-box show ' + type;
+            clearTimeout(messageTimeout);
+            messageTimeout = setTimeout(() => { messageBox.className = 'message-box ' + type; }, duration);
+        }
+
+        // --- Initial Load ---
+        document.addEventListener('DOMContentLoaded', () => {
+            populateDropdown(fieldOfInterestSelectElement, userCategories, "Select a field", "All Fields");
+            populateDropdown(institutionSelectElement, userInstitutions, "Select an institution", "All Institutions");
+            renderSelectedTags(selectedFieldsContainer, selectedFieldsArray, removeSelectedField);
+            renderSelectedTags(selectedInstitutionsContainer, selectedInstitutionsArray, removeSelectedInstitution);
+            showMessage("Define points, select fields & institutions, then find courses.", "info", 5000);
+        });
+    </script>
+</body>
+</html>
